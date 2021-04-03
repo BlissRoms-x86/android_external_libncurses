@@ -31,10 +31,6 @@ LOCAL_C_INCLUDES := $(LOCAL_PATH) \
 LOCAL_MODULE_TAGS := optional
 LOCAL_MODULE := libncurses
 
-#LOCAL_POST_INSTALL_CMD := \
-#	cp -r $(LOCAL_PATH)/terminfo $(TARGET_OUT_ETC)/terminfo
-#ALL_DEFAULT_INSTALLED_MODULES += $(TARGET_OUT_ETC)/terminfo
-
 include $(BUILD_SHARED_LIBRARY)
 
 #build libpanel
@@ -105,3 +101,29 @@ LOCAL_SHARED_LIBRARIES := \
     libncurses 
     
 include $(BUILD_STATIC_LIBRARY)
+
+#~ # Copy over TermInfo
+
+#traverse all the directory and subdirectory
+define walk
+  $(wildcard $(1)) $(foreach e, $(wildcard $(1)/*), $(call walk, $(e)))
+endef
+
+#find all the file recursively under terminfo/
+ALLFILES = $(call walk, $(LOCAL_PATH)/terminfo)
+FILE_LIST := $(ALLFILES)
+
+TERMINFO_FILES := $(FILE_LIST:$(LOCAL_PATH)/%=%)
+
+TERMINFO_SOURCE := $(LOCAL_PATH)
+TERMINFO_MKDIR_TARGET := $(TARGET_OUT_ETC)/terminfo
+TERMINFO_TARGET := $(TARGET_OUT_ETC)
+$(TERMINFO_TARGET): $(ACP)
+	@echo "copy terminfo to /etc/"
+	@mkdir -p $@
+	@$(foreach TERMINFO_FILE,$(TERMINFO_FILES), \
+		mkdir -p $@/$(dir $(TERMINFO_FILE)); \
+		$(ACP) $(TERMINFO_SOURCE)/$(TERMINFO_FILE) $@/$(TERMINFO_FILE); \
+	)
+ALL_DEFAULT_INSTALLED_MODULES += $(TERMINFO_TARGET)
+
